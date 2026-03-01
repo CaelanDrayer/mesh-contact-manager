@@ -1,16 +1,70 @@
 import json
 import os
+import secrets
 import shutil
 import threading
 import webbrowser
 from math import radians, sin, cos, sqrt, atan2
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session
+from werkzeug.utils import secure_filename
+
+from config import Config
 
 app = Flask(__name__)
+app.config.from_object(Config)
 
-# Track the directory of the last uploaded file
-uploaded_file_dir = None
+
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' https://unpkg.com; "
+        "style-src 'self' https://unpkg.com; "
+        "img-src 'self' data: https://*.tile.openstreetmap.org; "
+        "connect-src 'self'"
+    )
+    return response
+
+
+@app.before_request
+def check_csrf():
+    if request.method == "POST":
+        token = request.headers.get("X-CSRF-Token", "")
+        if not token or token != session.get("csrf_token"):
+            return jsonify({"error": "Invalid or missing CSRF token"}), 403
+
+
+@app.route("/api/csrf-token")
+def csrf_token():
+    if "csrf_token" not in session:
+        session["csrf_token"] = secrets.token_hex(32)
+    return jsonify({"csrf_token": session["csrf_token"]})
+
+
+def safe_filepath(directory, filename):
+    """Validate filename and ensure path stays within directory."""
+    if not filename or ".." in filename or filename.startswith("/"):
+        return None
+    filename = secure_filename(filename)
+    if not filename:
+        return None
+    filepath = os.path.realpath(os.path.join(directory, filename))
+    if not filepath.startswith(os.path.realpath(directory)):
+        return None
+    return filepath
+
+
+def validate_contacts(contacts):
+    """Validate contacts is a list within size limits."""
+    if not isinstance(contacts, list):
+        return False
+    if len(contacts) > 100000:
+        return False
+    return True
 
 
 def haversine_km(lat1, lon1, lat2, lon2):
@@ -29,8 +83,6 @@ def index():
 
 @app.route("/api/upload", methods=["POST"])
 def upload():
-    global uploaded_file_dir
-
     if "file" not in request.files:
         return jsonify({"error": "No file provided"}), 400
 
@@ -41,14 +93,17 @@ def upload():
     try:
         content = file.read().decode("utf-8")
         data = json.loads(content)
-    except (UnicodeDecodeError, json.JSONDecodeError) as e:
-        return jsonify({"error": f"Invalid JSON file: {str(e)}"}), 400
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return jsonify({"error": "Invalid JSON file"}), 400
 
     if "contacts" not in data or not isinstance(data["contacts"], list):
         return jsonify({"error": "JSON file must contain a 'contacts' array"}), 400
 
+    if not validate_contacts(data["contacts"]):
+        return jsonify({"error": "Invalid contacts data"}), 400
+
     # Store the original filename for later save/export operations
-    uploaded_file_dir = os.getcwd()
+    session["uploaded_file_dir"] = os.getcwd()
 
     return jsonify({
         "contacts": data["contacts"],
@@ -70,27 +125,29 @@ def save():
     if contacts is None or filename is None:
         return jsonify({"error": "Missing 'contacts' or 'filename'"}), 400
 
-    save_dir = uploaded_file_dir or os.getcwd()
+    if not validate_contacts(contacts):
+        return jsonify({"error": "Invalid contacts data"}), 400
+
+    save_dir = session.get("uploaded_file_dir", os.getcwd())
 
     # Create backup of the original file if it exists
     if original_filename:
-        original_path = os.path.join(save_dir, original_filename)
-        if os.path.exists(original_path):
-            name, ext = os.path.splitext(original_filename)
-            backup_path = os.path.join(save_dir, f"{name}.backup{ext}")
-            shutil.copy2(original_path, backup_path)
+        original_path = safe_filepath(save_dir, original_filename)
+        if original_path and os.path.exists(original_path):
+            name, ext = os.path.splitext(secure_filename(original_filename))
+            backup_path = safe_filepath(save_dir, f"{name}.backup{ext}")
+            if backup_path:
+                shutil.copy2(original_path, backup_path)
 
     # Write the kept contacts
-    output_path = os.path.join(save_dir, filename)
+    output_path = safe_filepath(save_dir, filename)
+    if not output_path:
+        return jsonify({"error": "Invalid filename"}), 400
     output_data = {"contacts": contacts}
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2)
 
-    return jsonify({
-        "success": True,
-        "path": output_path,
-        "count": len(contacts)
-    })
+    return jsonify({"success": True, "count": len(contacts)})
 
 
 @app.route("/api/export", methods=["POST"])
@@ -105,24 +162,25 @@ def export():
     if contacts is None or filename is None:
         return jsonify({"error": "Missing 'contacts' or 'filename'"}), 400
 
-    save_dir = uploaded_file_dir or os.getcwd()
-    output_path = os.path.join(save_dir, filename)
+    if not validate_contacts(contacts):
+        return jsonify({"error": "Invalid contacts data"}), 400
+
+    save_dir = session.get("uploaded_file_dir", os.getcwd())
+    output_path = safe_filepath(save_dir, filename)
+    if not output_path:
+        return jsonify({"error": "Invalid filename"}), 400
     output_data = {"contacts": contacts}
 
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(output_data, f, indent=2)
 
-    return jsonify({
-        "success": True,
-        "path": output_path,
-        "count": len(contacts)
-    })
+    return jsonify({"success": True, "count": len(contacts)})
 
 
 if __name__ == "__main__":
-    port = 8080
+    port = app.config.get("PORT", 8080)
     threading.Thread(
         target=lambda: webbrowser.open(f"http://localhost:{port}"),
         daemon=True
     ).start()
-    app.run(debug=False, port=port)
+    app.run(debug=app.config.get("DEBUG", False), port=port)

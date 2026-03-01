@@ -1,1 +1,4 @@
-flask
+flask>=3.0,<4.0
+gunicorn>=21.0
+pytest>=7.0
+pytest-flask>=1.0

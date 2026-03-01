@@ -9,6 +9,11 @@ document.addEventListener("DOMContentLoaded", function () {
   var centerIndex = null;    // index of the contact used as radius-filter center
   var radiusCircle = null;   // L.circle drawn around center
 
+  var csrfToken = "";
+  fetch("/api/csrf-token")
+    .then(function(res) { return res.json(); })
+    .then(function(data) { csrfToken = data.csrf_token; });
+
   // ---------------------------------------------------------------------------
   // Map Initialization
   // ---------------------------------------------------------------------------
@@ -76,6 +81,16 @@ document.addEventListener("DOMContentLoaded", function () {
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
   function makeIcon(type, color) {
     var prefix = TYPE_ICON_NAMES[type] || "client";
     return L.icon({
@@ -140,7 +155,7 @@ document.addEventListener("DOMContentLoaded", function () {
     var formData = new FormData();
     formData.append("file", file);
 
-    fetch("/api/upload", { method: "POST", body: formData })
+    fetch("/api/upload", { method: "POST", body: formData, headers: { "X-CSRF-Token": csrfToken } })
       .then(function (res) { return res.json(); })
       .then(function (data) {
         if (data.error) {
@@ -243,7 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
         onMarkerClick(index);
       });
       var name = (contact.custom_name || contact.name) || "(unknown)";
-      marker.bindTooltip(name, { direction: "top", offset: [0, -41] });
+      marker.bindTooltip(escapeHtml(name), { direction: "top", offset: [0, -41] });
       markers[index] = marker;
       boundsPoints.push([lat, lon]);
     });
@@ -266,14 +281,14 @@ document.addEventListener("DOMContentLoaded", function () {
   // Marker Click
   // ---------------------------------------------------------------------------
   function buildPopupContent(contact, index) {
-    var name = (contact.custom_name || contact.name) || "(unknown)";
-    var typeName = TYPE_NAMES[contact.type] || ("Type " + contact.type);
+    var name = escapeHtml((contact.custom_name || contact.name) || "(unknown)");
+    var typeName = escapeHtml(TYPE_NAMES[contact.type] || ("Type " + contact.type));
     var days = daysSince(contact.last_advert);
-    var lastSeen = days !== null ? days + " days ago" : "Unknown";
-    var loc = hasKnownLocation(contact)
+    var lastSeen = escapeHtml(days !== null ? days + " days ago" : "Unknown");
+    var loc = escapeHtml(hasKnownLocation(contact)
       ? parseFloat(contact.latitude).toFixed(4) + ", " + parseFloat(contact.longitude).toFixed(4)
-      : "Unknown";
-    var keyFull = contact.public_key || "N/A";
+      : "Unknown");
+    var keyFull = escapeHtml(contact.public_key || "N/A");
     var statusColor = contact.kept ? "#22c55e" : "#ef4444";
     var statusText = contact.kept ? "Keeping" : "Removing";
     var btnClass = contact.kept ? "popup-btn-remove" : "popup-btn-keep";
@@ -286,7 +301,7 @@ document.addEventListener("DOMContentLoaded", function () {
       "</div>" +
       "<table class='popup-table'>" +
         "<tr><td class='popup-label'>Type</td><td>" + typeName + "</td></tr>" +
-        "<tr><td class='popup-label'>Flags</td><td>" + contact.flags + "</td></tr>" +
+        "<tr><td class='popup-label'>Flags</td><td>" + escapeHtml(contact.flags) + "</td></tr>" +
         "<tr><td class='popup-label'>Key</td><td class='popup-key'>" + keyFull + "</td></tr>" +
         "<tr><td class='popup-label'>Location</td><td>" + loc + "</td></tr>" +
         "<tr><td class='popup-label'>Last Seen</td><td>" + lastSeen + "</td></tr>" +
@@ -536,7 +551,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     fetch("/api/save", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
       body: JSON.stringify({
         contacts: keptContacts,
         filename: filename,
@@ -565,7 +580,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     fetch("/api/export", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
       body: JSON.stringify({
         contacts: removedContacts,
         filename: "removed_contacts.json"
