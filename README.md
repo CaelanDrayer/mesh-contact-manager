@@ -12,38 +12,38 @@ MeshCore nodes accumulate contacts over time. Many become stale, have unknown lo
 - **Filter** by type, distance, last-seen age, and flags
 - **Protect** important contacts from accidental removal
 - **Prune** with confidence using visual green/red marker feedback
-- **Save** with automatic backup of the original file
+- **Save** with browser download -- choose where to save
 
 ## Quick Start
 
 ```bash
-# Clone
+# Clone the repository
 git clone https://github.com/CaelanDrayer/mesh-contact-manager.git
 cd mesh-contact-manager
 
-# Install (only dependency is Flask)
+# Install dependencies (Flask, Gunicorn, pytest, pytest-flask)
 pip install -r requirements.txt
 
-# Run (auto-opens browser)
+# Start the application
 python app.py
 ```
 
-The app starts on `http://localhost:8080` and opens your browser automatically.
+The app opens automatically in your browser at `http://localhost:8080`.
 
 ## Usage
 
 1. **Load contacts** -- Drag and drop your MeshCore contacts JSON file onto the drop zone (or click to browse)
 2. **Explore the map** -- Contacts appear as colored markers with type-specific icons. Hover for names, click for full details
 3. **Apply filters** -- Use the sidebar controls to mark contacts for removal:
-   - **Type checkboxes** -- Show/hide Repeaters, Clients, Rooms
+   - **Type checkboxes** -- Mark contact types for removal (contacts remain visible as red markers on the map)
    - **Radius filter** -- Click any contact or map location to set a center point, then enter a km radius. Contacts outside the circle turn red
    - **Last seen** -- Remove contacts not heard from in X days
    - **Flags filter** -- Keep only contacts with a specific flag value
    - **Unknown location** -- Keep or remove contacts at 0,0
 4. **Protect contacts** -- Use "Always Keep by Flag" to protect contacts with specific flags from all filter removal
 5. **Manual override** -- Click any marker's popup button to manually toggle keep/remove, overriding filters
-6. **Save** -- Click "Save Kept Contacts" to write the filtered list (original is backed up automatically)
-7. **Export** -- Click "Export Removed" to save removed contacts to a separate file for reference
+6. **Save** -- Click "Save Kept Contacts" to download the filtered contact list via a browser Save As dialog. Removed contacts are cleared from the map and the list is rebuilt with only kept contacts
+7. **Export** -- Click "Export Removed" to download removed contacts to a separate file for reference
 
 ## Features
 
@@ -63,10 +63,11 @@ The app starts on `http://localhost:8080` and opens your browser automatically.
 - **Real-time stats** -- Bottom bar shows total, keeping, and removing counts
 
 ### Safe File Handling
-- Automatic `.backup.json` of the original before saving
+- Save triggers a browser download dialog (native Save As) -- no server-side file writes
+- Export also triggers a browser download dialog
 - 2-space indented JSON output for readability
-- Export removed contacts separately for potential re-import
-- No modifications to source file until you explicitly save
+- After saving, removed contacts are cleared from the map and the contact list is rebuilt with only kept contacts
+- No modifications to your source file at any point -- all operations are client-side
 
 ## Contact Types & Icons
 
@@ -107,49 +108,163 @@ The app expects the standard MeshCore contacts config format:
 - `flags`: integer (commonly 0 or 1)
 - `last_advert`: Unix epoch timestamp of last advertisement heard
 
+## Security
+
+The application includes multiple layers of security hardening.
+
+**CSRF Protection**
+
+All POST endpoints require a valid CSRF token:
+
+1. Fetch a token: `GET /api/csrf-token` → returns `{"csrf_token": "<hex>"}`
+2. Include it on every POST: `X-CSRF-Token: <token>` header
+3. Missing or mismatched tokens return `403 Forbidden`
+
+**HTTP Security Headers**
+
+Every response includes:
+
+| Header | Value |
+|--------|-------|
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` |
+| `X-XSS-Protection` | `1; mode=block` |
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self' https://unpkg.com; style-src 'self' https://unpkg.com; img-src 'self' data: https://*.tile.openstreetmap.org; connect-src 'self'` |
+
+**Input Validation**
+
+- Filenames are sanitized with werkzeug's `secure_filename` and validated against `os.path.realpath` to block path traversal attacks (e.g., `../`, absolute paths)
+- Contacts payload must be a JSON array; objects or other types are rejected with `400`
+- Maximum of 100,000 contacts per request
+- Upload size capped at 16 MB by default (configurable via `MAX_CONTENT_LENGTH`)
+
+**Client-Side Protection**
+
+- All contact data is HTML-escaped via `escapeHtml()` before rendering in map popups, preventing XSS injection from malicious contact names or field values
+- Leaflet CSS and JavaScript are loaded from the CDN with Subresource Integrity (SRI) hashes (`integrity=` and `crossorigin=` attributes), ensuring the loaded library has not been tampered with
+
+## Testing
+
+The project includes a pytest-based test suite covering all API endpoints and security controls.
+
+**Test files**
+
+| File | Coverage |
+|------|----------|
+| `tests/conftest.py` | Shared fixtures: Flask test app, HTTP client, CSRF token helper |
+| `tests/test_upload.py` | `/api/upload` -- valid JSON, malformed JSON, missing file, bad structure |
+| `tests/test_save.py` | `/api/save` -- valid save, path traversal attempts, missing fields, empty filename |
+| `tests/test_export.py` | `/api/export` -- valid export, path traversal, missing fields |
+| `tests/test_security.py` | Security headers, CSRF token endpoint, CSRF enforcement, `MAX_CONTENT_LENGTH` config |
+
+**Running tests**
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+```
+
+Tests use `pytest-flask` for the Flask test client and pytest's built-in `tmp_path` fixture for isolated file I/O.
+
 ## Tech Stack
 
 | Component | Technology |
 |-----------|-----------|
-| Backend | Python + Flask |
+| Backend | Python 3 + Flask 3.x |
 | Frontend | Vanilla HTML/CSS/JS (no build tools) |
 | Map | Leaflet.js via CDN + OpenStreetMap tiles |
-| Distance | Haversine formula (Python stdlib math) |
-| Icons | Custom SVG (9 variants: 3 types x 3 colors) |
-| Dependencies | `flask` (single pip install) |
+| Distance | Haversine formula (Python stdlib `math`) |
+| Icons | Custom SVG (9 variants: 3 types × 3 colors) |
+| Dependencies | `flask>=3.0`, `gunicorn>=21.0`, `pytest>=7.0`, `pytest-flask>=1.0` |
 
 ## Project Structure
 
 ```
-meshcore/
-├── app.py                    # Flask server, API endpoints, haversine calc
-├── requirements.txt          # flask
+mesh-contact-manager/
+├── app.py              # Flask application and API routes
+├── config.py           # Configuration loaded from environment variables
+├── requirements.txt    # Python dependencies
+├── .env.example        # Environment variable template
 ├── templates/
-│   └── index.html            # Main page with Leaflet CDN imports
+│   └── index.html      # Single-page frontend
 ├── static/
 │   ├── css/
-│   │   └── style.css         # Dark theme, sidebar layout, popup styles
+│   │   └── style.css    # Dark theme, sidebar layout, popup styles
 │   ├── js/
-│   │   └── app.js            # Map logic, filtering, drag-drop, popups
-│   └── icons/
-│       ├── client-{green,red,blue}.svg
-│       ├── repeater-{green,red,blue}.svg
-│       └── room-{green,red,blue}.svg
-└── DESIGN_BRIEF.md           # Original design specification
+│   │   └── app.js       # Map logic, filtering, drag-drop, popups
+│   └── icons/           # 9 SVG icons (3 types × 3 colors)
+└── tests/
+    ├── conftest.py      # pytest fixtures
+    ├── test_upload.py   # Upload endpoint tests
+    ├── test_save.py     # Save endpoint tests
+    ├── test_export.py   # Export endpoint tests
+    └── test_security.py # Security and CSRF tests
 ```
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/` | Serve the main HTML page |
-| `POST` | `/api/upload` | Parse uploaded JSON, validate, return contacts array |
-| `POST` | `/api/save` | Backup original + save filtered contacts |
-| `POST` | `/api/export` | Export removed contacts to separate file |
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/` | Serve the main application UI |
+| `GET` | `/api/csrf-token` | Generate and return CSRF token for session |
+| `POST` | `/api/upload` | Upload and parse a MeshCore JSON contacts file |
+| `POST` | `/api/save` | Save filtered contacts back to disk (with backup) |
+| `POST` | `/api/export` | Export a contact subset to a new file |
+
+All `POST` endpoints require a valid `X-CSRF-Token` header.
+
+**Note:** The `/api/save` and `/api/export` endpoints are fully functional on the server and available for programmatic or API use. The web UI currently uses client-side browser downloads instead of these endpoints -- Save and Export both trigger a native browser Save As dialog without making a server request.
 
 ## Configuration
 
-The app runs on port **8080** by default (configurable in `app.py`). It validates coordinate ranges (-90/90 lat, -180/180 lon) and treats 0,0 as unknown location.
+Configuration is managed through the `Config` class in `config.py`. All values are read from environment variables and fall back to sensible defaults when not set.
+
+Copy `.env.example` to `.env` and customize as needed:
+
+```bash
+cp .env.example .env
+```
+
+**Environment variables**
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `SECRET_KEY` | auto-generated | Flask session secret. Auto-generated at startup if not set -- set explicitly in production so sessions survive restarts. |
+| `MAX_CONTENT_LENGTH` | `16777216` (16 MB) | Maximum upload size in bytes. |
+| `PORT` | `8080` | Port the server listens on. |
+| `DEBUG` | `false` | Enable Flask debug mode. Set `true` only in development. |
+| `UPLOAD_DIR` | *(current working directory)* | Directory where saved/exported files are written. |
+
+> **Note:** If `SECRET_KEY` is not set, a new random key is generated each time the app starts, which invalidates existing sessions on restart. Always set an explicit `SECRET_KEY` in production.
+
+## Deployment
+
+**Development**
+
+```bash
+python app.py
+```
+
+Starts the Flask dev server, opens a browser tab automatically, and respects the `DEBUG` environment variable.
+
+**Production**
+
+Use [gunicorn](https://gunicorn.org/), which is included in `requirements.txt`:
+
+```bash
+gunicorn app:app --bind 0.0.0.0:8080
+```
+
+Gunicorn does not auto-open a browser, handles multiple worker processes, and is suitable for serving traffic. Adjust workers with `--workers`:
+
+```bash
+gunicorn app:app --bind 0.0.0.0:8080 --workers 4
+```
+
+Set `SECRET_KEY` in your environment (or a `.env` file loaded by your process manager) before starting so sessions persist across worker restarts.
 
 ## License
 
