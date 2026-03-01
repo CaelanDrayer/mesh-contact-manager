@@ -17,6 +17,9 @@ VA7WT-*.json
 export*.json
 export*
 
+# Design brief
+DESIGN_BRIEF.md
+
 # Test/temp files
 test.json
 trds
