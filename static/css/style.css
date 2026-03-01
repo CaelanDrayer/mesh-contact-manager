@@ -311,57 +311,6 @@ input[type="radio"] {
   font-weight: 600;
 }
 
-/* --- Save Modal --- */
-
-#save-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.7);
-  z-index: 2000;
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-
-#save-modal.visible {
-  display: flex;
-}
-
-.modal-content {
-  background: #1a1a2e;
-  border-radius: 12px;
-  padding: 24px;
-  max-width: 400px;
-  width: 90%;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-}
-
-.modal-content h2 {
-  margin: 0 0 16px 0;
-  font-size: 1.1rem;
-  color: #fff;
-}
-
-.modal-content input[type="text"] {
-  width: 100%;
-  padding: 10px 12px;
-  font-size: 0.9rem;
-  margin-bottom: 16px;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.modal-actions .btn {
-  flex: 1;
-  margin-bottom: 0;
-}
-
 /* --- Leaflet Marker Clickability --- */
 
 .leaflet-marker-icon {

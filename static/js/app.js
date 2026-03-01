@@ -50,12 +50,6 @@ document.addEventListener("DOMContentLoaded", function () {
   var saveBtn         = document.getElementById("save-btn");
   var exportBtn       = document.getElementById("export-btn");
 
-  // Modal
-  var saveModal       = document.getElementById("save-modal");
-  var saveFilename    = document.getElementById("save-filename");
-  var modalSaveBtn    = document.getElementById("modal-save-btn");
-  var modalCancelBtn  = document.getElementById("modal-cancel-btn");
-
   // ---------------------------------------------------------------------------
   // Helpers
   // ---------------------------------------------------------------------------
@@ -533,43 +527,69 @@ document.addEventListener("DOMContentLoaded", function () {
   unknownKeep.addEventListener("change", applyFilters);
 
   // ---------------------------------------------------------------------------
+  // Native Browser Download Helper
+  // ---------------------------------------------------------------------------
+  function downloadJsonFile(data, defaultFilename) {
+    var json = JSON.stringify(data, null, 2);
+    var blob = new Blob([json], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = defaultFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------------------------------------------------------------------------
   // Save
   // ---------------------------------------------------------------------------
   saveBtn.addEventListener("click", function () {
-    var suggested = originalFilename || "contacts_filtered.json";
-    saveFilename.value = suggested;
-    saveModal.classList.add("visible");
-  });
-
-  modalCancelBtn.addEventListener("click", function () {
-    saveModal.classList.remove("visible");
-  });
-
-  modalSaveBtn.addEventListener("click", function () {
     var keptContacts = contacts.filter(function (c) { return c.kept; }).map(stripClientState);
-    var filename = saveFilename.value.trim() || "contacts_filtered.json";
+    var filename = originalFilename || "contacts_filtered.json";
 
-    fetch("/api/save", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
-      body: JSON.stringify({
-        contacts: keptContacts,
-        filename: filename,
-        original_filename: originalFilename
-      })
-    })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        if (data.error) {
-          alert("Save failed: " + data.error);
-          return;
-        }
-        alert("Saved " + data.count + " contacts to " + data.path);
-        saveModal.classList.remove("visible");
-      })
-      .catch(function (err) {
-        alert("Save failed: " + err.message);
-      });
+    // Trigger native browser Save As dialog
+    downloadJsonFile({ contacts: keptContacts }, filename);
+
+    // Remove markers for removed contacts, then strip them from the array
+    contacts.forEach(function (c, i) {
+      if (!c.kept && markers[i]) {
+        map.removeLayer(markers[i]);
+        delete markers[i];
+      }
+    });
+
+    // Rebuild contacts array with only kept contacts and re-index markers
+    var keptWithOrigIndex = [];
+    contacts.forEach(function (c, i) {
+      if (c.kept) keptWithOrigIndex.push({ contact: c, oldIndex: i });
+    });
+    var newMarkers = {};
+    keptWithOrigIndex.forEach(function (item, newIndex) {
+      if (markers[item.oldIndex]) {
+        newMarkers[newIndex] = markers[item.oldIndex];
+        // Rebind click handler with new index
+        newMarkers[newIndex].off("click");
+        newMarkers[newIndex].on("click", (function (idx) {
+          return function (e) {
+            L.DomEvent.stopPropagation(e);
+            onMarkerClick(idx);
+          };
+        })(newIndex));
+      }
+    });
+    markers = newMarkers;
+    contacts = keptWithOrigIndex.map(function (item) { return item.contact; });
+
+    // Reset center if it referenced an old index
+    if (centerIndex !== null) centerIndex = null;
+    centerLatLon = null;
+    if (radiusCircle) { map.removeLayer(radiusCircle); radiusCircle = null; }
+    radiusCenterName.textContent = "Click a contact or map to set center";
+
+    updateStats();
+    buildAlwaysKeepOptions();
   });
 
   // ---------------------------------------------------------------------------
@@ -577,26 +597,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // ---------------------------------------------------------------------------
   exportBtn.addEventListener("click", function () {
     var removedContacts = contacts.filter(function (c) { return !c.kept; }).map(stripClientState);
-
-    fetch("/api/export", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "X-CSRF-Token": csrfToken },
-      body: JSON.stringify({
-        contacts: removedContacts,
-        filename: "removed_contacts.json"
-      })
-    })
-      .then(function (res) { return res.json(); })
-      .then(function (data) {
-        if (data.error) {
-          alert("Export failed: " + data.error);
-          return;
-        }
-        alert("Exported " + data.count + " removed contacts to " + data.path);
-      })
-      .catch(function (err) {
-        alert("Export failed: " + err.message);
-      });
+    if (removedContacts.length === 0) {
+      alert("No removed contacts to export.");
+      return;
+    }
+    downloadJsonFile({ contacts: removedContacts }, "removed_contacts.json");
   });
 
   // ---------------------------------------------------------------------------
