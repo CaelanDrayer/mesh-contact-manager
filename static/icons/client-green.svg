@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 41" width="25" height="41">
+  <!-- Pin shape -->
+  <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#22c55e"/>
+  <!-- White circle background -->
+  <circle cx="12.5" cy="12.5" r="8.5" fill="white" opacity="0.3"/>
+  <!-- Device/phone icon -->
+  <rect x="8" y="5" width="9" height="15" rx="1.5" ry="1.5" fill="none" stroke="white" stroke-width="1.5"/>
+  <line x1="11" y1="17" x2="14" y2="17" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+</svg>

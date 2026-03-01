@@ -1,0 +1,561 @@
+/* ============================================================
+   MeshCore Contacts Manager - Stylesheet
+   ============================================================ */
+
+/* --- Reset & Base --- */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #111;
+  color: #e0e0e0;
+}
+
+/* --- Layout Container --- */
+
+#app {
+  display: flex;
+  height: 100vh;
+  width: 100%;
+}
+
+/* --- Sidebar --- */
+
+#sidebar {
+  width: 300px;
+  min-width: 300px;
+  height: 100vh;
+  overflow-y: auto;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  padding: 16px;
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.4);
+  z-index: 500;
+}
+
+#sidebar h1 {
+  font-size: 1.1rem;
+  color: #fff;
+  margin: 0 0 16px 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #333;
+}
+
+/* --- Drag & Drop Zone --- */
+
+#drop-zone {
+  border: 2px dashed #555;
+  border-radius: 8px;
+  padding: 24px;
+  text-align: center;
+  color: #999;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  margin-bottom: 16px;
+}
+
+#drop-zone:hover {
+  border-color: #777;
+}
+
+#drop-zone.dragover {
+  border-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+#drop-zone p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* --- File Info --- */
+
+#file-info {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 8px;
+  margin-bottom: 16px;
+}
+
+/* --- Filter Sections --- */
+
+.filter-group {
+  margin-bottom: 16px;
+}
+
+.filter-group > .filter-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  color: #aaa;
+  margin-bottom: 8px;
+}
+
+.checkbox-label,
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #e0e0e0;
+  margin-bottom: 4px;
+}
+
+.btn-small {
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  width: auto;
+  margin-top: 6px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.filter-row label {
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-transform: none;
+  color: #e0e0e0;
+  cursor: pointer;
+  margin-bottom: 0;
+}
+
+/* --- Checkboxes --- */
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checkbox-group label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-transform: none;
+  color: #e0e0e0;
+}
+
+input[type="checkbox"] {
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+/* --- Inputs (number, text) --- */
+
+input[type="number"],
+input[type="text"] {
+  width: 80px;
+  background: #2a2a3e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+input[type="number"]:focus,
+input[type="text"]:focus {
+  border-color: #3b82f6;
+}
+
+/* --- Select Dropdowns --- */
+
+select {
+  background: #2a2a3e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+select:focus {
+  border-color: #3b82f6;
+}
+
+/* --- Radio Buttons --- */
+
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 400;
+  text-transform: none;
+  color: #e0e0e0;
+}
+
+input[type="radio"] {
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+/* --- Action Buttons --- */
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-bottom: 8px;
+  text-align: center;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #22c55e;
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1ea550;
+}
+
+.btn-secondary {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.btn-danger {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+/* --- Map --- */
+
+#map-container {
+  flex: 1;
+  height: 100vh;
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+}
+
+/* --- Stats Bar (overlay on map) --- */
+
+#stats-bar {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 8px 20px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.stat-keep {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.stat-remove {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* --- Save Modal --- */
+
+#save-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#save-modal.visible {
+  display: flex;
+}
+
+.modal-content {
+  background: #1a1a2e;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h2 {
+  margin: 0 0 16px 0;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.modal-content input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.modal-actions .btn {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* --- Leaflet Marker Clickability --- */
+
+.leaflet-marker-icon {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+/* --- Leaflet Tooltip Dark Theme --- */
+
+.leaflet-tooltip {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.leaflet-tooltip-top::before {
+  border-top-color: #1a1a2e;
+}
+
+/* --- Leaflet Popup Customization --- */
+
+.leaflet-popup-content-wrapper {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.leaflet-popup-content {
+  margin: 10px 14px;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.leaflet-popup-tip {
+  background: #1a1a2e;
+}
+
+.leaflet-popup-content-wrapper a {
+  color: #3b82f6;
+}
+
+/* --- MeshCore Popup Info --- */
+
+.popup-info {
+  min-width: 220px;
+}
+
+.popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #333;
+}
+
+.popup-header strong {
+  font-size: 1rem;
+  color: #fff;
+}
+
+.popup-status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.popup-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 10px;
+}
+
+.popup-table td {
+  padding: 2px 0;
+  font-size: 0.8rem;
+  color: #ccc;
+  vertical-align: top;
+}
+
+.popup-label {
+  color: #888 !important;
+  font-size: 0.75rem !important;
+  width: 70px;
+  padding-right: 8px !important;
+  white-space: nowrap;
+}
+
+.popup-key {
+  font-family: monospace;
+  font-size: 0.7rem !important;
+  color: #aaa !important;
+  word-break: break-all;
+}
+
+.popup-toggle {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.15s;
+}
+
+.popup-btn-remove {
+  background: #ef4444;
+  color: #fff;
+}
+
+.popup-btn-remove:hover {
+  background: #dc2626;
+}
+
+.popup-btn-keep {
+  background: #22c55e;
+  color: #fff;
+}
+
+.popup-btn-keep:hover {
+  background: #16a34a;
+}
+
+.leaflet-popup-close-button {
+  color: #888 !important;
+  font-size: 18px !important;
+  padding: 4px 6px !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #fff !important;
+}
+
+/* --- Scrollbar Styling (sidebar) --- */
+
+#sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+#sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#sidebar::-webkit-scrollbar-thumb {
+  background: #444;
+  border-radius: 3px;
+}
+
+#sidebar::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+#radius-center-name {
+  font-size: 0.8rem;
+  color: #aaa;
+  margin-top: 6px;
+  margin-bottom: 4px;
+}
+
+#filters-section small {
+  display: block;
+  font-size: 0.75rem;
+  color: #777;
+  margin-top: 4px;
+}
+
+/* --- Utility --- */
+
+.hidden {
+  display: none !important;
+}
+
+.text-muted {
+  color: #888;
+  font-size: 0.8rem;
+}
+
+.mt-8 {
+  margin-top: 8px;
+}
+
+.mb-8 {
+  margin-bottom: 8px;
+}
+
+.mb-16 {
+  margin-bottom: 16px;
+}

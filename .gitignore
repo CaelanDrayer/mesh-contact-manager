@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+
+# macOS
+.DS_Store
+
+# Agent Memory (cAgents session data)
+Agent_Memory/
+
+# Data files (user-specific contact configs)
+*.backup.json
+VA7WT-*.json
+export*.json
+export*
+
+# Test/temp files
+test.json
+trds
+
+# Logs
+*.log
+/tmp/

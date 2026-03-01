@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 41" width="25" height="41">
+  <!-- Pin shape -->
+  <path d="M12.5 0C5.6 0 0 5.6 0 12.5C0 21.9 12.5 41 12.5 41S25 21.9 25 12.5C25 5.6 19.4 0 12.5 0Z" fill="#3b82f6"/>
+  <!-- White circle background -->
+  <circle cx="12.5" cy="12.5" r="8.5" fill="white" opacity="0.3"/>
+  <!-- Tower/antenna icon -->
+  <line x1="12.5" y1="5" x2="12.5" y2="20" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="12.5" y1="11" x2="8" y2="18" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+  <line x1="12.5" y1="11" x2="17" y2="18" stroke="white" stroke-width="1.3" stroke-linecap="round"/>
+  <!-- Signal waves -->
+  <path d="M7.5 7.5C9 9 9 11 7.5 12.5" fill="none" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+  <path d="M17.5 7.5C16 9 16 11 17.5 12.5" fill="none" stroke="white" stroke-width="1.1" stroke-linecap="round"/>
+</svg>
